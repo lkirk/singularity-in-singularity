@@ -1,5 +1,6 @@
 Bootstrap: docker
 From: debian:9-slim
+Stage: build-singularity
 
 %post
 	set -ex
@@ -16,7 +17,6 @@ From: debian:9-slim
 	    libseccomp-dev \
 	    wget \
 	    pkg-config \
-	    git \
 	    cryptsetup-bin \
 	    ca-certificates
 
@@ -28,6 +28,27 @@ From: debian:9-slim
 	wget https://github.com/sylabs/singularity/releases/download/v${SINGULARITY_VERSION}/singularity-ce-${SINGULARITY_VERSION}.tar.gz
 	tar -xzf singularity-ce-${SINGULARITY_VERSION}.tar.gz
 	cd singularity-ce-${SINGULARITY_VERSION}
-	./mconfig
+	./mconfig --without-suid
 	make -C ./builddir
 	make -C ./builddir install
+
+Bootstrap: docker
+From: debian:9-slim
+
+%files from build-singularity
+       /usr/local/bin /usr/local
+       /usr/local/etc/singularity
+       /usr/local/libexec/singularity
+       /usr/local/etc/bash_completion.d/singularity
+
+%post
+	apt-get update
+	apt-get install -y --no-install-recommends \
+	    squashfs-tools \
+	    libseccomp-dev \
+	    ca-certificates
+
+	apt-get clean
+	rm -rf /var/lib/apt/lists/*
+
+	mkdir -p /usr/local/var/singularity/mnt/session
